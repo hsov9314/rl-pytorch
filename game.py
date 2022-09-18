@@ -163,3 +163,10 @@ class SnakeGameAI:
             y -= BLOCK_SIZE
 
         self.head = Point(x, y)
+
+
+if __name__ == "__main__":
+    game = SnakeGameAI()
+    while True:
+        action = [int(s) for s in input().split(" ")]
+        _, _, _ = game.play_step(action)
