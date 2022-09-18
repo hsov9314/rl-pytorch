@@ -15,6 +15,9 @@ class MineSweeper:
         self.screen = pygame.display.set_mode(self.sizeScreen)
         self.pieceSize = (self.sizeScreen[0] / size[1], self.sizeScreen[1] / size[0])
         self.loadPictures()
+
+        # 押せるマスのリスト list<x: int, y: int>
+        self.unrevealed_piece = self.board.getUnrevealedPieces()
         # self.solver = Solver(self.board)
 
     def loadPictures(self):
@@ -54,12 +57,15 @@ class MineSweeper:
 
     def play_step(self, index):
         self.handleClick(index, False)
+        self.unrevealed_piece = self.board.getUnrevealedPieces()
         self.screen.fill((0, 0, 0))
         self.draw()
         pygame.display.flip()
         if self.board.getWon():
             self.win()
             running = False
+
+        return self.unrevealed_piece
 
     def run_external(self):
         running = True
@@ -108,9 +114,13 @@ if __name__ == "__main__":
     import random
     import time
 
-    w = 50
-    h = 50
-    game = MineSweeper([w, h], 0.01)
+    w = 20
+    h = 20
+    game = MineSweeper([w, h], 0.1)
     while True:
-        game.play_step([random.randint(0, w), random.randint(0, h)])
-        time.sleep(1)
+        random.shuffle(game.unrevealed_piece)
+        print(game.unrevealed_piece)
+        index = game.unrevealed_piece[0]
+        choice = game.play_step(index)
+        print(choice)
+        time.sleep(5)

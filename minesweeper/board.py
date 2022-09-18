@@ -1,10 +1,12 @@
 import random
 from piece import Piece
+
+
 class Board:
     def __init__(self, size, prob):
         self.size = size
         self.board = []
-        self.won = False 
+        self.won = False
         self.lost = False
         for row in range(size[0]):
             row = []
@@ -27,9 +29,18 @@ class Board:
 
     def getSize(self):
         return self.size
-    
+
     def getPiece(self, index):
         return self.board[index[0]][index[1]]
+
+    def getUnrevealedPieces(self):
+        unrevealed_pieces = []
+        for i, row in enumerate(self.board):
+            for j, piece in enumerate(row):
+                if not piece.clicked:
+                    unrevealed_pieces.append([i, j])
+
+        return unrevealed_pieces
 
     def handleClick(self, piece, flag):
         if piece.getClicked() or (piece.getFlagged() and not flag):
@@ -45,7 +56,7 @@ class Board:
             self.lost = True
         else:
             self.won = self.checkWon()
-    
+
     def checkWon(self):
         for row in self.board:
             for piece in row:
@@ -66,7 +77,7 @@ class Board:
                 neighbors = []
                 self.addToNeighborsList(neighbors, row, col)
                 piece.setNeighbors(neighbors)
-    
+
     def addToNeighborsList(self, neighbors, row, col):
         for r in range(row - 1, row + 2):
             for c in range(col - 1, col + 2):
@@ -75,10 +86,8 @@ class Board:
                 if r < 0 or r >= self.size[0] or c < 0 or c >= self.size[1]:
                     continue
                 neighbors.append(self.board[r][c])
-    
+
     def setNumAround(self):
         for row in self.board:
             for piece in row:
                 piece.setNumAround()
-        
-        
