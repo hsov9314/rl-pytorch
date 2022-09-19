@@ -10,7 +10,7 @@ from model import Linear_QNet, QTrainer
 from helper import plot
 
 MAX_MEMORY = 100_000
-BATCH_SIZE = 1000
+BATCH_SIZE = 400
 LR = 0.001
 
 
@@ -18,7 +18,7 @@ class Agent:
     def __init__(self, image_w, image_h, board_w, board_h):
         self.n_games = 0
         self.won_count = 0
-        self.epsilon = 0  # randomness
+        self.epsilon = 0.5  # randomness
         self.gamma = 0.9  # discount rate
         self.memory = deque(maxlen=MAX_MEMORY)  # popleft()
         self.model = Linear_QNet(image_w * image_h, 256, board_w * board_h)
@@ -30,48 +30,6 @@ class Agent:
         screen = game.get_screen(self.image_w, self.image_h)
         screen = np.ravel(screen)
         return screen
-
-    def get_state(self, game):
-        head = game.snake[0]
-        point_l = Point(head.x - 20, head.y)
-        point_r = Point(head.x + 20, head.y)
-        point_u = Point(head.x, head.y - 20)
-        point_d = Point(head.x, head.y + 20)
-
-        dir_l = game.direction == Direction.LEFT
-        dir_r = game.direction == Direction.RIGHT
-        dir_u = game.direction == Direction.UP
-        dir_d = game.direction == Direction.DOWN
-
-        state = [
-            # Danger straight
-            (dir_r and game.is_collision(point_r))
-            or (dir_l and game.is_collision(point_l))
-            or (dir_u and game.is_collision(point_u))
-            or (dir_d and game.is_collision(point_d)),
-            # Danger right
-            (dir_u and game.is_collision(point_r))
-            or (dir_d and game.is_collision(point_l))
-            or (dir_l and game.is_collision(point_u))
-            or (dir_r and game.is_collision(point_d)),
-            # Danger left
-            (dir_d and game.is_collision(point_r))
-            or (dir_u and game.is_collision(point_l))
-            or (dir_r and game.is_collision(point_u))
-            or (dir_l and game.is_collision(point_d)),
-            # Move direction
-            dir_l,
-            dir_r,
-            dir_u,
-            dir_d,
-            # Food location
-            game.food.x < game.head.x,  # food left
-            game.food.x > game.head.x,  # food right
-            game.food.y < game.head.y,  # food up
-            game.food.y > game.head.y,  # food down
-        ]
-
-        return np.array(state, dtype=int)
 
     def remember(self, state, action, reward, next_state, done):
         self.memory.append(
@@ -86,32 +44,18 @@ class Agent:
 
         states, actions, rewards, next_states, dones = zip(*mini_sample)
         self.trainer.train_step(states, actions, rewards, next_states, dones)
-        # for state, action, reward, nexrt_state, done in mini_sample:
-        #    self.trainer.train_step(state, action, reward, next_state, done)
+        # for state, action, reward, next_state, done in mini_sample:
+        #     self.trainer.train_step(state, action, reward, next_state, done)
 
     def train_short_memory(self, state, action, reward, next_state, done):
         self.trainer.train_step(state, action, reward, next_state, done)
 
-    def get_action(self, state):
-        # random moves: tradeoff exploration / exploitation
-        self.epsilon = 80 - self.n_games
-        final_move = [0, 0, 0]
-        if random.randint(0, 200) < self.epsilon:
-            move = random.randint(0, 2)
-            final_move[move] = 1
-        else:
-            state0 = torch.tensor(state, dtype=torch.float)
-            prediction = self.model(state0)
-            move = torch.argmax(prediction).item()
-            final_move[move] = 1
-        return final_move
-
     def ms_get_action(self, state):
         # random moves: tradeoff exploration / exploitation
-        self.epsilon = 80 - self.n_games
+        # self.epsilon *= 0.9997
         final_move = np.zeros(self.board_h * self.board_w)
 
-        if random.randint(0, 200) < self.epsilon:
+        if np.random.choice([True, False], p=[self.epsilon, 1 - self.epsilon]):
             move = random.randint(0, self.board_h * self.board_w) - 1
             final_move[move] = 1
         else:
@@ -119,7 +63,7 @@ class Agent:
             prediction = self.model(state0)
             move = torch.argmax(prediction).item()
             final_move[move] = 1
-        final_move = final_move.astype(np.int)
+        final_move = final_move.astype(np.int64)
         # print(final_move.dtype)
         return final_move
 
@@ -183,8 +127,8 @@ def train():
             # if score > record:
             #     record = score
             #     agent.model.save()
-            if won:
-                agent.model.save()
+            # if won:
+            #     agent.model.save()
 
             print(
                 "n={}: win_rate={}".format(
@@ -194,11 +138,12 @@ def train():
             # print("Game", agent.n_games, "Score", score, "Record:", record)
             # print(agent.won_count)
             # print(agent.n_games)
-            # plot_scores.append(agent.won_count / agent.n_games)
+            plot_scores.append(agent.won_count / agent.n_games)
             # total_score += score
             # mean_score = total_score / agent.n_games
             # plot_mean_scores.append(mean_score)
-            # plot(plot_scores)
+            if agent.n_games % 50 == 0:
+                plot(plot_scores, agent.n_games)
 
 
 if __name__ == "__main__":

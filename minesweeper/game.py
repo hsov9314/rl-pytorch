@@ -15,9 +15,8 @@ class MineSweeper:
     def __init__(self, size, prob):
         self.size, self.prob = size, prob
         self.board = Board(size, prob)
-        os.environ["SDL_VIDEODRIVER"] = "dummy"
+        # os.environ["SDL_VIDEODRIVER"] = "dummy"
         pygame.init()
-        os.environ["SDL_VIDEODRIVER"] = "dummy"
 
         self.sizeScreen = 400, 400
         self.screen = pygame.display.set_mode(self.sizeScreen)
@@ -32,9 +31,8 @@ class MineSweeper:
 
     def reset(self):
         self.board = Board(self.size, self.prob)
-        os.environ["SDL_VIDEODRIVER"] = "dummy"
+        # os.environ["SDL_VIDEODRIVER"] = "dummy"
         pygame.init()
-        os.environ["SDL_VIDEODRIVER"] = "dummy"
         self.screen = pygame.display.set_mode(self.sizeScreen)
         self.pieceSize = (
             self.sizeScreen[0] / self.size[1],
@@ -100,7 +98,8 @@ class MineSweeper:
                 0,
             )
         self.handleClick(index, False)
-        self.unrevealed_piece = self.board.getUnrevealedPieces()
+        # self.unrevealed_piece = self.board.getUnrevealedPieces()
+        self.unrevealed_piece = []
         self.screen.fill((0, 0, 0))
         self.draw()
         pygame.display.flip()
