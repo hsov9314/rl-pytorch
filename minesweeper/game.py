@@ -1,7 +1,11 @@
 import pygame
-from piece import Piece
-from board import Board
+from minesweeper.piece import Piece
+from minesweeper.board import Board
 import os
+from PIL import Image
+import matplotlib.pyplot as plt
+import numpy as np
+import cv2
 
 # from solver import Solver
 from time import sleep
@@ -9,21 +13,39 @@ from time import sleep
 
 class MineSweeper:
     def __init__(self, size, prob):
+        self.size, self.prob = size, prob
         self.board = Board(size, prob)
+        os.environ["SDL_VIDEODRIVER"] = "dummy"
         pygame.init()
-        self.sizeScreen = 800, 800
+        os.environ["SDL_VIDEODRIVER"] = "dummy"
+
+        self.sizeScreen = 400, 400
         self.screen = pygame.display.set_mode(self.sizeScreen)
         self.pieceSize = (self.sizeScreen[0] / size[1], self.sizeScreen[1] / size[0])
         self.loadPictures()
         self.running = True
+        self.step = 0
 
         # 押せるマスのリスト list<x: int, y: int>
         self.unrevealed_piece = self.board.getUnrevealedPieces()
         # self.solver = Solver(self.board)
 
+    def reset(self):
+        self.board = Board(self.size, self.prob)
+        os.environ["SDL_VIDEODRIVER"] = "dummy"
+        pygame.init()
+        os.environ["SDL_VIDEODRIVER"] = "dummy"
+        self.screen = pygame.display.set_mode(self.sizeScreen)
+        self.pieceSize = (
+            self.sizeScreen[0] / self.size[1],
+            self.sizeScreen[1] / self.size[0],
+        )
+        self.step = 0
+        self.unrevealed_piece = self.board.getUnrevealedPieces()
+
     def loadPictures(self):
         self.images = {}
-        imagesDirectory = "images"
+        imagesDirectory = "minesweeper/images"
         for fileName in os.listdir(imagesDirectory):
             if not fileName.endswith(".png"):
                 continue
@@ -57,30 +79,41 @@ class MineSweeper:
         pygame.quit()
 
     def play_step(self, index):
-        done = False
+        """play_step
+        play action
+        return type:
+        (
+        unrevealed_piece: list<int, int>
+        board_won: boolean
+        board_lost: boolean
+        step: int
+        reward: int
+        )
+        """
+        self.step += 1
+        if self.board.getPiece(index).getClicked():
+            return (
+                self.unrevealed_piece,
+                self.board.getWon(),
+                self.board.lost,
+                self.step,
+                0,
+            )
         self.handleClick(index, False)
         self.unrevealed_piece = self.board.getUnrevealedPieces()
         self.screen.fill((0, 0, 0))
         self.draw()
         pygame.display.flip()
-        if self.board.getWon():
-            self.win()
-            done = True
 
-        return self.unrevealed_piece, done
+        reward = 1 if self.board.won else (-1 if self.board.lost else 0)
 
-    def run_external(self):
-        running = True
-        while running:
-            index = [int(s) for s in input("x, y: ").split(" ")][::-1]
-            self.handleClick(index, False)
-            self.screen.fill((0, 0, 0))
-            self.draw()
-            pygame.display.flip()
-            if self.board.getWon():
-                self.win()
-                running = False
-        pygame.quit()
+        return (
+            self.unrevealed_piece,
+            self.board.getWon(),
+            self.board.lost,
+            self.step,
+            reward,
+        )
 
     def draw(self):
         topLeft = (0, 0)
@@ -111,21 +144,51 @@ class MineSweeper:
     def win(self):
         pass
 
+    def get_screen(self, w, h):
+        string_image = pygame.image.tostring(self.screen, "RGB")
+        surface = pygame.image.fromstring(
+            string_image, (self.sizeScreen[0], self.sizeScreen[1]), "RGB"
+        )
+        screen_image_array = pygame.surfarray.array3d(surface)
+
+        # rotate image by 90 degree and flip to adjust
+        screen_image_array = np.rot90(screen_image_array, 3)
+        screen_image_array = np.fliplr(screen_image_array)
+
+        # convert color image to greyscale image
+        # original image's shape: (800, 800, 3)
+        screen_image_array = np.dot(
+            screen_image_array[..., :3], [0.2989, 0.5870, 0.1140]
+        )
+
+        # resize
+        screen_image_array = cv2.resize(screen_image_array, (w, h))
+
+        return screen_image_array
+
 
 if __name__ == "__main__":
     import random
-    import time
 
-    w = 20
-    h = 20
+    w = 6
+    h = 6
     game = MineSweeper([w, h], 0.1)
     while True:
         random.shuffle(game.unrevealed_piece)
-        print(game.unrevealed_piece)
         index = game.unrevealed_piece[0]
-        choice, done = game.play_step(index)
-        if done:
+        choice, win, lost, step, reward = game.play_step(index)
+        print("win:{} lost:{} step:{} reward:{}".format(win, lost, step, reward))
+        # print(np.ravel(screen).shape)
+
+        # skip game when lost at first step
+        if step == 1 and lost:
             pygame.quit()
-            break
-        print(choice)
-        time.sleep(1)
+            game = MineSweeper([w, h], 0.1)
+            continue
+
+        if win or lost:
+            pygame.quit()
+            game = MineSweeper([w, h], 0.1)
+
+        # plt.imshow(screen)
+        plt.show()

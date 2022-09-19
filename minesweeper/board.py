@@ -1,5 +1,5 @@
 import random
-from piece import Piece
+from minesweeper.piece import Piece
 
 
 class Board:
