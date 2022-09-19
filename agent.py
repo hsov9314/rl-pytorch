@@ -142,7 +142,7 @@ def train():
             # total_score += score
             # mean_score = total_score / agent.n_games
             # plot_mean_scores.append(mean_score)
-            if agent.n_games % 50 == 0:
+            if agent.n_games % 100 == 0:
                 plot(plot_scores, agent.n_games)
 
 
