@@ -1,3 +1,4 @@
+import time
 import pygame
 from minesweeper.piece import Piece
 from minesweeper.board import Board
@@ -95,7 +96,7 @@ class MineSweeper:
                 self.board.getWon(),
                 self.board.lost,
                 self.step,
-                -5,
+                0,
             )
         self.handleClick(index, False)
         # self.unrevealed_piece = self.board.getUnrevealedPieces()
@@ -104,7 +105,7 @@ class MineSweeper:
         self.draw()
         pygame.display.flip()
 
-        reward = 10 if self.board.won else (-10 if self.board.lost else 5)
+        reward = 10 if self.board.won else (-10 if self.board.lost else 1)
 
         return (
             self.unrevealed_piece,
@@ -162,6 +163,9 @@ class MineSweeper:
 
         # resize
         screen_image_array = cv2.resize(screen_image_array, (w, h))
+
+        cv2.imwrite("img{}.png".format(self.play_step), screen_image_array)
+        # time.sleep(5)
 
         return screen_image_array
 
