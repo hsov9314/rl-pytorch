@@ -1,8 +1,10 @@
 from time import sleep
+import time
 import torch
 import random
 import numpy as np
 from collections import deque
+import cv2
 
 # from game import SnakeGameAI, Direction, Point
 from minesweeper.game import MineSweeper
@@ -11,7 +13,7 @@ from helper import plot
 
 MAX_MEMORY = 100_000
 BATCH_SIZE = 400
-LR = 0.001
+LR = 0.0001
 
 
 class Agent:
